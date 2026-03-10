@@ -1,0 +1,5 @@
+{
+  "name": "PDFForge: Professional PDF Editor",
+  "description": "A high-performance browser-based PDF editor and converter blueprint using PDF.js and an operation-based editing model.",
+  "requestFramePermissions": []
+}
