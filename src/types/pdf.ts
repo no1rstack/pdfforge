@@ -57,6 +57,34 @@ export interface ImageOp extends BaseOp {
 
 export type Operation = TextOp | HighlightOp | DrawOp | SignatureOp | ImageOp;
 
+export type AiMode = 'learn' | 'analyze' | 'assist';
+
+export interface AiMessage {
+  id: string;
+  role: 'user' | 'model';
+  text: string;
+  timestamp: number;
+  isGrounding?: boolean;
+  groundingUrls?: string[];
+}
+
+export interface AiNote {
+  id: string;
+  text: string;
+  page: number;
+  x: number;
+  y: number;
+  timestamp: number;
+  linkedOpId?: string;
+}
+
+export interface AiSession {
+  messages: AiMessage[];
+  isExternalResearchEnabled: boolean;
+  mode: AiMode;
+  notes: AiNote[];
+}
+
 export interface EditSession {
   documentId: string;
   revision: number;

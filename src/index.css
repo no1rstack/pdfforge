@@ -25,3 +25,27 @@
 ::-webkit-scrollbar-thumb {
   @apply bg-black/10 rounded-full hover:bg-black/20 transition-colors;
 }
+
+/* PDF.js Text Layer */
+.textLayer {
+  position: absolute;
+  text-align: initial;
+  inset: 0;
+  overflow: hidden;
+  opacity: 1;
+  line-height: 1;
+  text-rendering: optimizeLegibility;
+}
+
+.textLayer span,
+.textLayer br {
+  color: transparent;
+  position: absolute;
+  white-space: pre;
+  cursor: text;
+  transform-origin: 0% 0%;
+}
+
+.textLayer ::selection {
+  background: rgba(0, 0, 255, 0.2);
+}

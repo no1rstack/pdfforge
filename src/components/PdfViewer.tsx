@@ -2,8 +2,8 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import * as pdfjs from 'pdfjs-dist';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../lib/utils';
-import { Operation, OpType } from '../types/pdf';
-import { Signature, CheckCircle2 } from 'lucide-react';
+import { Operation, OpType, AiNote } from '../types/pdf';
+import { Signature, CheckCircle2, Sparkles } from 'lucide-react';
 
 interface PdfViewerProps {
   doc: pdfjs.PDFDocumentProxy;
@@ -17,6 +17,8 @@ interface PdfViewerProps {
   selectedOpId: string | null;
   onSelectOp: (id: string | null) => void;
   onPageChange: (page: number) => void;
+  onTextSelect?: (text: string) => void;
+  notes?: AiNote[];
 }
 
 export function PdfViewer({
@@ -31,6 +33,8 @@ export function PdfViewer({
   selectedOpId,
   onSelectOp,
   onPageChange,
+  onTextSelect,
+  notes = []
 }: PdfViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [pageDimensions, setPageDimensions] = useState<Record<number, { width: number; height: number }>>({});
@@ -143,6 +147,8 @@ export function PdfViewer({
                   activeTool={activeTool}
                   selectedOpId={selectedOpId}
                   onSelectOp={onSelectOp}
+                  onTextSelect={onTextSelect}
+                  notes={notes.filter(n => n.page === pageNum)}
                   width={dims.width * zoom}
                   height={dims.height * zoom}
                   originalWidth={dims.width}
@@ -172,6 +178,8 @@ function PdfPageRenderer({
   activeTool, 
   selectedOpId, 
   onSelectOp,
+  onTextSelect,
+  notes,
   width,
   height,
   originalWidth,
@@ -186,6 +194,8 @@ function PdfPageRenderer({
   activeTool: OpType | 'select',
   selectedOpId: string | null,
   onSelectOp: (id: string | null) => void,
+  onTextSelect?: (text: string) => void,
+  notes?: AiNote[],
   width: number,
   height: number,
   originalWidth: number,
@@ -193,6 +203,7 @@ function PdfPageRenderer({
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
+  const textLayerRef = useRef<HTMLDivElement>(null);
   const [isRendered, setIsRendered] = useState(false);
   const activeRenderTaskRef = useRef<any>(null);
   const renderLockRef = useRef<Promise<void>>(Promise.resolve());
@@ -265,6 +276,19 @@ function PdfPageRenderer({
           activeRenderTaskRef.current = renderTask;
           
           await renderTask.promise;
+
+          // Render text layer
+          if (textLayerRef.current) {
+            textLayerRef.current.innerHTML = '';
+            const textContent = await page.getTextContent();
+            const textLayer = new pdfjs.TextLayer({
+              textContentSource: textContent,
+              container: textLayerRef.current,
+              viewport: viewport,
+            });
+            await textLayer.render();
+          }
+
           setIsRendered(true);
         } catch (error: any) {
           if (error.name !== 'RenderingCancelledException') {
@@ -477,9 +501,20 @@ function PdfPageRenderer({
       }
       setDrawingState(null);
     }
+
+    // Capture text selection
+    const selection = window.getSelection();
+    const selectedText = selection?.toString().trim();
+    if (selectedText && selectedText.length > 0) {
+      onTextSelect?.(selectedText);
+    } else if (!dragState && !resizeState && !drawingState) {
+      // Only clear if we didn't just perform an action
+      onTextSelect?.('');
+    }
+
     setDragState(null);
     setResizeState(null);
-  }, [drawingState, pageNumber, onAddOp]);
+  }, [drawingState, pageNumber, onAddOp, onTextSelect, dragState, resizeState]);
 
   useEffect(() => {
     if (dragState || drawingState || resizeState) {
@@ -520,6 +555,17 @@ function PdfPageRenderer({
         )} 
       />
       
+      {/* Text Layer for selection */}
+      <div 
+        ref={textLayerRef}
+        className="absolute top-0 left-0 textLayer pointer-events-auto"
+        style={{ 
+          width: width, 
+          height: height,
+          opacity: 0.2 // Make it slightly visible for debugging if needed, but usually 0 or hidden
+        }}
+      />
+      
       {/* Operation Overlay Layer */}
       <div 
         className="absolute top-0 left-0 pointer-events-none" 
@@ -554,6 +600,20 @@ function PdfPageRenderer({
             }}
           />
         )}
+
+        {/* Render AI Notes */}
+        {notes?.map(note => (
+          <div 
+            key={note.id}
+            className="absolute p-2 bg-amber-50 border border-amber-200 rounded-lg shadow-lg max-w-[150px] z-20 pointer-events-auto cursor-help group"
+            style={{ left: note.x, top: note.y }}
+          >
+            <Sparkles className="w-3 h-3 text-amber-500 mb-1" />
+            <p className="text-[8px] leading-tight text-black/60 line-clamp-3 group-hover:line-clamp-none transition-all">
+              {note.text}
+            </p>
+          </div>
+        ))}
 
         {ops.map(op => (
           <div 

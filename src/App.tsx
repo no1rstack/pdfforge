@@ -23,14 +23,17 @@ import {
   Loader2,
   X,
   Minus,
-  Plus
+  Plus,
+  Sparkles
 } from 'lucide-react';
 import { cn } from './lib/utils';
-import { Operation, Job, OpType } from './types/pdf';
+import { Operation, Job, OpType, AiSession, AiNote, AiMode } from './types/pdf';
 import { apiService } from './services/apiService';
 import { PdfViewer } from './components/PdfViewer';
 import { PdfThumbnail } from './components/PdfThumbnail';
 import { SignaturePad } from './components/SignaturePad';
+import { AiAssistantPanel } from './components/AiAssistantPanel';
+import { GeminiContext } from './services/gemini';
 import { PDFDocument } from 'pdf-lib';
 
 // Initialize PDF.js worker
@@ -52,6 +55,18 @@ export default function App() {
   const [selectedPages, setSelectedPages] = useState<number[]>([]);
   const [isSplitting, setIsSplitting] = useState(false);
   
+  // AI State
+  const [isAiOpen, setIsAiOpen] = useState(false);
+  const [aiSession, setAiSession] = useState<AiSession>({
+    messages: [],
+    isExternalResearchEnabled: false,
+    mode: 'analyze',
+    notes: []
+  });
+  const [selectedText, setSelectedText] = useState('');
+  const [fullText, setFullText] = useState('');
+  const [currentPageText, setCurrentPageText] = useState('');
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Poll for jobs
@@ -72,10 +87,35 @@ export default function App() {
       setPdfDoc(doc);
       setCurrentPage(1);
       
+      // Extract full text for AI context
+      let text = '';
+      for (let i = 1; i <= doc.numPages; i++) {
+        const page = await doc.getPage(i);
+        const content = await page.getTextContent();
+        text += content.items.map((item: any) => item.str).join(' ') + '\n';
+      }
+      setFullText(text);
+      
       // Simulate backend ingest
       await apiService.uploadDocument(uploadedFile);
     }
   };
+
+  // Update current page text for AI context
+  useEffect(() => {
+    const extractPageText = async () => {
+      if (!pdfDoc) return;
+      try {
+        const page = await pdfDoc.getPage(currentPage);
+        const content = await page.getTextContent();
+        const text = content.items.map((item: any) => item.str).join(' ');
+        setCurrentPageText(text);
+      } catch (error) {
+        console.error('Error extracting page text:', error);
+      }
+    };
+    extractPageText();
+  }, [pdfDoc, currentPage]);
 
   const pushToHistory = (newOps: Operation[]) => {
     setHistory(prev => [...prev, ops]);
@@ -261,6 +301,17 @@ export default function App() {
           </button>
 
           <button 
+            onClick={() => setIsAiOpen(!isAiOpen)}
+            className={cn(
+              "flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg transition-all shadow-sm",
+              isAiOpen ? "bg-black text-white" : "bg-amber-50 text-amber-600 hover:bg-amber-100"
+            )}
+          >
+            <Sparkles className="w-4 h-4" />
+            AI Assistant
+          </button>
+
+          <button 
             onClick={() => fileInputRef.current?.click()}
             className="flex items-center gap-2 px-3 py-1.5 bg-black/5 hover:bg-black/10 text-sm font-medium rounded-lg transition-colors"
           >
@@ -354,7 +405,48 @@ export default function App() {
               selectedOpId={selectedOpId}
               onSelectOp={setSelectedOpId}
               onPageChange={setCurrentPage}
+              onTextSelect={(text) => {
+                setSelectedText(text);
+                if (text && !isAiOpen) setIsAiOpen(true);
+              }}
+              notes={aiSession.notes}
             />
+            
+            {/* AI Selection Overlay */}
+            <AnimatePresence>
+              {selectedText && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 10 }}
+                  className="absolute bottom-24 left-1/2 -translate-x-1/2 bg-white rounded-2xl shadow-2xl border border-black/5 p-2 flex items-center gap-2 z-50"
+                >
+                  <div className="px-3 py-1 text-[10px] font-bold text-black/40 uppercase tracking-widest border-r border-black/5">
+                    Selection
+                  </div>
+                  <button 
+                    onClick={() => setIsAiOpen(true)}
+                    className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 text-amber-600 text-[10px] font-bold rounded-lg hover:bg-amber-100 transition-colors"
+                  >
+                    <Sparkles className="w-3 h-3" />
+                    Explain
+                  </button>
+                  <button 
+                    onClick={() => setIsAiOpen(true)}
+                    className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-600 text-[10px] font-bold rounded-lg hover:bg-blue-100 transition-colors"
+                  >
+                    <Search className="w-3 h-3" />
+                    Research
+                  </button>
+                  <button 
+                    onClick={() => setSelectedText('')}
+                    className="p-1.5 hover:bg-black/5 rounded-lg text-black/20"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
             
             {/* Page Navigation Overlay */}
             <div className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-white/80 backdrop-blur-md border border-black/5 px-4 py-2 rounded-full shadow-lg flex items-center gap-4 z-40">
@@ -619,6 +711,34 @@ export default function App() {
             <p className="text-[10px] text-black/40 mt-1">{(file?.size || 0) / 1024 > 1024 ? `${((file?.size || 0) / 1024 / 1024).toFixed(2)} MB` : `${((file?.size || 0) / 1024).toFixed(2)} KB`}</p>
           </div>
         </aside>
+
+        <AiAssistantPanel 
+          isOpen={isAiOpen}
+          onClose={() => setIsAiOpen(false)}
+          context={{
+            fullText,
+            currentPageText,
+            selectedText,
+            mode: aiSession.mode,
+            isExternalResearchEnabled: aiSession.isExternalResearchEnabled
+          }}
+          session={aiSession}
+          onUpdateSession={setAiSession}
+          onSaveNote={(note) => {
+            const newNote: AiNote = {
+              id: Math.random().toString(36).substring(7),
+              text: note.text || '',
+              page: currentPage,
+              x: 50, // Default position
+              y: 50,
+              timestamp: Date.now()
+            };
+            setAiSession(prev => ({
+              ...prev,
+              notes: [...prev.notes, newNote]
+            }));
+          }}
+        />
 
         {/* Job Queue Drawer */}
         <AnimatePresence>
