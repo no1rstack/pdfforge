@@ -1,0 +1,70 @@
+Business Source License 1.1
+
+Licensor: Noir Stack LLC
+
+Licensed Work: Noir Sanctum (including snx-api and all associated source code, documentation, and configuration in this repository)
+
+Change Date: January 1, 2030
+
+Change License: MIT License
+
+---
+
+Terms
+
+The Licensor hereby grants you the right to copy, modify, create derivative works, redistribute, and make non-production use of the Licensed Work, subject to the limitations below.
+
+---
+
+Additional Use Grant
+
+You may use this software for:
+
+* Internal business purposes
+* Evaluation, development, and testing
+* Self-hosted deployments within your own organization
+
+---
+
+Restrictions
+
+You may not:
+
+* Provide the Licensed Work as a hosted, managed, or SaaS offering to third parties
+* Offer a competing service that exposes the functionality of the Licensed Work
+* Use the Licensed Work to power a commercial product where access to the software or its core functionality is sold, leased, or monetized as a service
+
+These restrictions apply whether the Licensed Work is used directly or as a substantial component of another system.
+
+---
+
+Change Date License
+
+On the Change Date above, this software will automatically convert to the MIT License, and the restrictions in this license will no longer apply.
+
+---
+
+Redistribution
+
+You may distribute copies of the Licensed Work, provided that:
+
+* This license is included in full
+* You do not remove or alter any copyright notices
+* You do not misrepresent the origin of the software
+
+---
+
+Disclaimer
+
+THE LICENSED WORK IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT.
+
+IN NO EVENT SHALL THE LICENSOR BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING FROM, OUT OF, OR IN CONNECTION WITH THE LICENSED WORK OR THE USE OR OTHER DEALINGS IN THE LICENSED WORK.
+
+---
+
+Contact
+
+For commercial licensing, production SaaS use, or alternative terms, contact:
+
+Noir Stack LLC
+contact@noirstack.com

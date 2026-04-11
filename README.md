@@ -18,3 +18,8 @@ View your app in AI Studio: https://ai.studio/apps/e1efa3d0-176b-4317-910d-79ff2
 2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
 3. Run the app:
    `npm run dev`
+
+## License
+This project is licensed under the Business Source License 1.1 (BSL).  
+See the LICENSE file for details.
+
